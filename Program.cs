@@ -8,14 +8,19 @@ namespace DictionaryImplementation
         class Dictionary<TKey, TValue> where TKey : IEquatable<TKey>
         {
             const int InitialCapacity = 11;
-            int containerCapacity;
-            readonly List<KeyValuePair<TKey, TValue>>[] container;
+            const double MaxLoadFactor = 0.75;
+
+            List<KeyValuePair<TKey, TValue>>[] container;
+
+
+            double LoadFactor { get => Count / Capacity; }
 
             public int Count { get; private set; }
+            public int Capacity { get; private set; }
 
             public Dictionary(int capacity = InitialCapacity)
             {
-                containerCapacity = capacity;
+                Capacity = capacity;
                 container = new List<KeyValuePair<TKey, TValue>>[capacity];
             }
 
@@ -25,14 +30,18 @@ namespace DictionaryImplementation
                 {
                     throw new ArgumentNullException("key is null");
                 }
-                return (key.GetHashCode() % containerCapacity + containerCapacity) % containerCapacity;
+                return (key.GetHashCode() % Capacity + Capacity) % Capacity;
             }
 
-            int FindListIndexByKey(List<KeyValuePair<TKey, TValue>> list, TKey key) => 
-                list.FindIndex(pair => pair.Key.Equals(key));
+            int FindListIndexByKey(List<KeyValuePair<TKey, TValue>> list, TKey key) =>
+                list is null
+                ? -1
+                : list.FindIndex(pair => pair.Key.Equals(key));
 
             int FindListIndexByValue (List<KeyValuePair<TKey, TValue>> list, TValue value) => 
-                list.FindIndex(pair => pair.Value.Equals(value));
+                list is null
+                ? -1
+                : list.FindIndex(pair => pair.Value.Equals(value));
 
             TValue GetValue(TKey key)
             {
@@ -58,14 +67,19 @@ namespace DictionaryImplementation
             void SetValue(TKey key, TValue value, bool allowModifyExisting = false)
             {
                 var pair = new KeyValuePair<TKey, TValue>(key, value);
-                var listIndex = TryGetListIndexOfEntry(key, out var list);
-                if (listIndex < 0)
+                if (!ContainsKey(key))
                 {
+                    if(LoadFactor > MaxLoadFactor)
+                    {
+                        Resize();
+                    }
+                    var listIndex = TryGetListIndexOfEntry(key, out var list);
                     list.Add(pair);
                     ++Count;
                 }
                 else if (allowModifyExisting)
                 {
+                    var listIndex = TryGetListIndexOfEntry(key, out var list);
                     list[listIndex] = pair;
                 }
                 else
@@ -85,7 +99,7 @@ namespace DictionaryImplementation
             {
                 int containerIndex = 0;
                 int listIndex = -1;
-                while(containerIndex < container.Length )
+                while(containerIndex < container.Length)
                 {
                     listIndex = FindListIndexByValue(container[containerIndex], value);
                     ++containerIndex;
@@ -131,14 +145,35 @@ namespace DictionaryImplementation
 
             public TValue this[TKey key]
             {
-                get { return GetValue(key); }
-                set { SetValue(key, value, true); }
+                get => GetValue(key);
+                set => SetValue(key, value, true);
+            }
+
+            void Resize()
+            {
+                var oldContainer = container;
+                container = new List<KeyValuePair<TKey, TValue>>[Capacity *= 2];
+                foreach(var list in oldContainer)
+                {
+                    foreach (var pair in list)
+                    {
+                        this[pair.Key] = pair.Value;
+                    }
+                }
             }
         }
 
         static void Main()
         {
-            var dictionary = new Dictionary<string, int>();
+            var dictionary = new Dictionary<string, int>(1);
+            dictionary["a"] = 1;
+            dictionary["b"] = 2;
+
+            dictionary["b"] = 3;
+
+            Console.WriteLine(dictionary["a"]);
+
+            Console.WriteLine(dictionary["b"]);
         }
     }
 }
