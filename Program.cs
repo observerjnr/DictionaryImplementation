@@ -69,7 +69,7 @@ namespace DictionaryImplementation
                 var pair = new KeyValuePair<TKey, TValue>(key, value);
                 if (!ContainsKey(key))
                 {
-                    if(LoadFactor > MaxLoadFactor)
+                    if((double)(Count + 1)/Capacity > MaxLoadFactor)
                     {
                         Resize();
                     }
@@ -155,25 +155,54 @@ namespace DictionaryImplementation
                 container = new List<KeyValuePair<TKey, TValue>>[Capacity *= 2];
                 foreach(var list in oldContainer)
                 {
+                    if (list is null) continue;
+
                     foreach (var pair in list)
                     {
                         this[pair.Key] = pair.Value;
                     }
                 }
             }
+
+            public IEnumerable<KeyValuePair<TKey, TValue>> getAll()
+            {
+                var result = new List<KeyValuePair<TKey, TValue>>(Count);
+                foreach (var list in container)
+                {
+                    if (list is null) continue;
+
+                    result.AddRange(list);
+                }
+                return result;
+            }
+               
         }
 
         static void Main()
         {
-            var dictionary = new Dictionary<string, int>(1);
-            dictionary["a"] = 1;
-            dictionary["b"] = 2;
+            var dictionary = new Dictionary<string, int>
+            {
+                ["a"] = 1,
+                ["b"] = 2,
+                ["c"] = 3,
+                ["d"] = 4,
+                ["e"] = 5,
+                ["f"] = 6,
+                ["g"] = 7,
+                ["h"] = 8,
+            };
 
-            dictionary["b"] = 3;
+            dictionary["i"] = 9;
+            dictionary["c"] = 10;
+            dictionary["d"] = 11;
+            dictionary["e"] = 12;
+            dictionary["m"] = 13;
 
-            Console.WriteLine(dictionary["a"]);
-
-            Console.WriteLine(dictionary["b"]);
+            Console.WriteLine( dictionary.Capacity );
+            foreach(var pair in dictionary.getAll())
+            {
+                Console.WriteLine($"{ pair.Key } - { pair.Value }");
+            }
         }
     }
 }
